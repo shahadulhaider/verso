@@ -1,0 +1,76 @@
+version: '3'
+
+vars:
+  COMPOSE_FILE: deploy/docker-compose.yml
+  COMPOSE_CMD: docker compose -f {{.COMPOSE_FILE}}
+
+tasks:
+  up:
+    desc: Start all infrastructure containers
+    cmds:
+      - "{{.COMPOSE_CMD}} up -d"
+      - echo "Waiting for containers to be healthy..."
+      - sleep 30
+      - "{{.COMPOSE_CMD}} ps"
+
+  down:
+    desc: Stop containers (preserve volumes)
+    cmds:
+      - "{{.COMPOSE_CMD}} down"
+
+  nuke:
+    desc: Stop containers AND delete all volumes (clean slate)
+    cmds:
+      - "{{.COMPOSE_CMD}} down -v --remove-orphans"
+
+  test:
+    desc: Run all tests (Go + Node + Python)
+    cmds:
+      - go test ./libs/go/... -count=1
+      - cmd: cd libs/node && pnpm -r test
+      - cmd: cd libs/py && pytest
+
+  gen:
+    desc: Generate code from proto definitions
+    cmds:
+      - buf generate proto/
+
+  lint:
+    desc: Lint all code
+    cmds:
+      - buf lint proto/
+
+  debezium:register:
+    desc: Register Debezium Postgres connector (run after 'task up')
+    cmds:
+      - |
+        curl -sf -X POST http://localhost:8083/connectors \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "verso-postgres-connector",
+            "config": {
+              "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+              "database.hostname": "postgres",
+              "database.port": "5432",
+              "database.user": "verso",
+              "database.password": "verso_dev",
+              "database.dbname": "verso",
+              "topic.prefix": "verso",
+              "table.include.list": "*.outbox_events",
+              "transforms": "outbox",
+              "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+              "plugin.name": "pgoutput"
+            }
+          }'
+        echo ""
+        echo "Connector registered!"
+
+  ps:
+    desc: Show container status
+    cmds:
+      - "{{.COMPOSE_CMD}} ps"
+
+  logs:
+    desc: Tail logs (all or specific service)
+    cmds:
+      - "{{.COMPOSE_CMD}} logs -f {{.CLI_ARGS}}"
