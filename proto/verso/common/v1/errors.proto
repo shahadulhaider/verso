@@ -1,0 +1,12 @@
+syntax = "proto3";
+package verso.common.v1;
+option go_package = "github.com/shahadulhaider/verso/gen/go/verso/common/v1;commonv1";
+
+// ProblemDetail represents an RFC 9457 problem response.
+message ProblemDetail {
+  string type = 1;      // URI reference identifying the problem type
+  string title = 2;     // Short human-readable summary
+  int32 status = 3;     // HTTP status code
+  string detail = 4;    // Human-readable explanation
+  string instance = 5;  // URI reference identifying the occurrence
+}

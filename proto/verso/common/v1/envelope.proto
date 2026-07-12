@@ -1,0 +1,15 @@
+syntax = "proto3";
+package verso.common.v1;
+option go_package = "github.com/shahadulhaider/verso/gen/go/verso/common/v1;commonv1";
+
+// EventEnvelope wraps all domain events on the Redpanda bus.
+message EventEnvelope {
+  string event_id = 1;        // ULID
+  string type = 2;            // e.g. "verso.catalog.work-created.v1"
+  string occurred_at = 3;     // ISO-8601 UTC
+  string producer = 4;        // service name
+  string trace_id = 5;        // OpenTelemetry trace ID
+  string partition_key = 6;   // routing key (user_id, work_id, etc.)
+  bytes payload = 7;          // service-specific protobuf bytes
+  int32 schema_version = 8;   // payload schema version
+}
