@@ -30,12 +30,19 @@ commercial product: **commercial features are modeled, not monetized** (payments
 ```
 platform/
 ├── AGENTS.md
+├── Taskfile.yml                   # task up/down/nuke/test/gen/lint
+├── .env.example                   # all config vars (copy to .env)
 ├── services/<verso-x-service>/    # one dir per backend service
 ├── web/                           # Next.js + React + TS + Tailwind
 ├── mobile/                        # Flutter
-├── proto/                         # Protobuf event (+ optional Connect) schemas — contracts-first
-├── libs/{go,node,py}/             # shared: event envelope, outbox, otel, errors, logger, jwt
-└── deploy/docker-compose.yml
+├── proto/                         # Protobuf event schemas — contracts-first
+├── gen/{go,ts,py}/                # Generated code from proto (buf generate)
+├── libs/{go,node,py}/             # shared: envelope, outbox, otel, errors, logger, jwt
+├── deploy/
+│   ├── docker-compose.yml         # all infra + profiles
+│   ├── config/                    # OTel, Prometheus, Grafana, Tempo configs
+│   └── init/                      # Postgres init scripts
+└── .sisyphus/                     # plans, notepads (gitignored)
 ```
 
 ## Stack (right tool per workload)
@@ -76,7 +83,16 @@ Traefik labels · in-app resilience · unit + **testcontainers** tests.
 
 ## Workflow (one unit per session)
 `read ../docs/07-build-plan.md` → **plan mode** (load only the relevant spec slices) → finalize →
-**`/start-work`** → build → **verify** (above) → tick the ledger → **commit**.
+create **feature branch** → **`/start-work`** → build → **verify** (above) → tick the ledger →
+**commit** → open **PR** against `main` for review.
+
+## Git workflow
+- **main** is the stable branch. Only merge via reviewed PRs.
+- Each phase (or major unit of work) gets a **feature branch**: `phase-1/walking-skeleton`,
+  `phase-2/mvp`, etc.
+- Branch from `main`, work on the feature branch, open a PR when done.
+- The PR must be **personally reviewed and tested** by the maintainer before merge.
+- Never push directly to `main` after Phase 0.
 
 ## Git identity
 Name: Shahadul Haider · Email: shahadul.haider@gmail.com (global gitconfig already set — don't override).
