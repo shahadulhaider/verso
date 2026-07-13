@@ -143,4 +143,4 @@ Development conventions, naming rules, API patterns, and the Definition of Done 
 
 ## License
 
-(c) 2024 Shahadul Haider. All rights reserved.
+(c) 2025-2026 Shahadul Haider. All rights reserved.
