@@ -317,6 +317,35 @@ services:
       - "traefik.http.services.search.loadbalancer.server.port=8003"
     networks: [verso-net]
 
+  # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
+  web-bff:
+    build:
+      context: ../services/web-bff
+      dockerfile: Dockerfile
+    environment:
+      PORT: "8010"
+      IDENTITY_SERVICE_URL: http://verso-identity-service:8001
+      CATALOG_SERVICE_URL: http://verso-catalog-service:8002
+      SEARCH_SERVICE_URL: http://verso-search-service:8003
+    depends_on:
+      verso-identity-service:
+        condition: service_healthy
+      verso-catalog-service:
+        condition: service_healthy
+      verso-search-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8010/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bff.rule=PathPrefix(`/api`)"
+      - "traefik.http.services.bff.loadbalancer.server.port=8010"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d
