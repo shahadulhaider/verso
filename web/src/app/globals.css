@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-cream: #FAF9F6;
+  --color-ink: #1C1917;
+  --color-amber-700: #B45309;
+  --color-amber-800: #92400E;
+  --font-serif: "Lora", "Georgia", serif;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
