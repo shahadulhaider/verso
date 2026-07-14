@@ -232,6 +232,34 @@ services:
       timeout: 5s
       retries: 10
 
+  # ─── Identity Service ─────────────────────────────────────────────────
+  verso-identity-service:
+    build:
+      context: ..
+      dockerfile: services/verso-identity-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=identity&sslmode=disable
+      PORT: "8001"
+      JWT_KEY_PATH: /tmp/verso-jwt-key.pem
+      JWT_EXPIRY: ${IDENTITY_JWT_EXPIRY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.identity.rule=PathPrefix(`/v1/auth`) || PathPrefix(`/.well-known`)"
+      - "traefik.http.services.identity.loadbalancer.server.port=8001"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d
