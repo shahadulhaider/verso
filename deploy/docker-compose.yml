@@ -260,6 +260,35 @@ services:
       - "traefik.http.services.identity.loadbalancer.server.port=8001"
     networks: [verso-net]
 
+  # ─── Catalog Service ──────────────────────────────────────────────────
+  verso-catalog-service:
+    build:
+      context: ..
+      dockerfile: services/verso-catalog-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=catalog&sslmode=disable
+      PORT: "8002"
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.catalog.rule=PathPrefix(`/v1/works`) || PathPrefix(`/v1/editions`)"
+      - "traefik.http.services.catalog.loadbalancer.server.port=8002"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d

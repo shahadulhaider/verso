@@ -4,4 +4,5 @@ use (
 	./libs/go
 	./gen/go
 	./services/verso-identity-service
+	./services/verso-catalog-service
 )
