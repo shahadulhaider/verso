@@ -1,8 +1,9 @@
 go 1.26.5
 
 use (
-	./libs/go
 	./gen/go
-	./services/verso-identity-service
+	./libs/go
 	./services/verso-catalog-service
+	./services/verso-identity-service
+	./services/verso-search-service
 )

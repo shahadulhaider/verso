@@ -289,6 +289,34 @@ services:
       - "traefik.http.services.catalog.loadbalancer.server.port=8002"
     networks: [verso-net]
 
+  # ─── Search Service ───────────────────────────────────────────────────
+  verso-search-service:
+    build:
+      context: ..
+      dockerfile: services/verso-search-service/Dockerfile
+    environment:
+      <<: *common-env
+      PORT: "8003"
+      OPENSEARCH_URL: http://opensearch:9200
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-catalog-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.search.rule=PathPrefix(`/v1/search`)"
+      - "traefik.http.services.search.loadbalancer.server.port=8003"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d
