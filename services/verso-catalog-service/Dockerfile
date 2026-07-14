@@ -4,10 +4,14 @@ RUN apk add --no-cache git
 
 WORKDIR /build
 
-COPY go.work ./
+COPY go.work go.work.sum* ./
 COPY libs/go/ libs/go/
 COPY gen/go/ gen/go/
 COPY services/verso-catalog-service/ services/verso-catalog-service/
+COPY services/verso-identity-service/go.mod services/verso-identity-service/go.mod
+COPY services/verso-identity-service/go.sum services/verso-identity-service/go.sum
+COPY services/verso-search-service/go.mod services/verso-search-service/go.mod
+COPY services/verso-search-service/go.sum services/verso-search-service/go.sum
 
 WORKDIR /build/services/verso-catalog-service
 
