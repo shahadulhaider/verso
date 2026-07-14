@@ -1,0 +1,20 @@
+syntax = "proto3";
+package verso.catalog.v1;
+
+// WorkCreated is emitted when a new literary work is added to the catalog.
+message WorkCreated {
+  string work_id = 1;              // ULID
+  string title = 2;
+  repeated string contributor_ids = 3;
+  repeated string genres = 4;
+  string isbn13 = 5;
+}
+
+// EditionPublished is emitted when an edition of a work is published.
+message EditionPublished {
+  string edition_id = 1;           // ULID
+  string work_id = 2;             // ULID — references the parent work
+  string publisher = 3;
+  string language = 4;
+  repeated string formats = 5;    // e.g. "epub", "pdf", "audiobook"
+}

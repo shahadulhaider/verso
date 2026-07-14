@@ -38,6 +38,7 @@ services:
     volumes:
       - pg-data:/var/lib/postgresql/data
       - ./init/01-init-extensions.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql
+      - ./init/02-service-schemas.sql:/docker-entrypoint-initdb.d/02-service-schemas.sql
     ports:
       - "${POSTGRES_PORT}:5432"
     networks: [verso-net]

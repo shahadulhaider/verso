@@ -1,0 +1,10 @@
+syntax = "proto3";
+package verso.identity.v1;
+
+// UserRegistered is emitted when a new user completes registration.
+message UserRegistered {
+  string user_id = 1;        // ULID
+  string email = 2;
+  string display_name = 3;
+  string registered_at = 4;  // ISO-8601 UTC
+}
