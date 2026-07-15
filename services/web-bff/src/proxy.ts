@@ -48,8 +48,11 @@ export async function proxyRequest(
       reply.header("content-type", contentType);
     }
 
+    // Buffer the response body — undici ReadableStream can't be piped directly to Fastify reply
+    const body = await res.body.text();
+
     reply.status(res.statusCode);
-    reply.send(res.body);
+    reply.send(body);
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "TimeoutError") {
       reply

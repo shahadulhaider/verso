@@ -21,6 +21,7 @@ const keyID = "verso-identity-1"
 // TokenManager handles RSA key management, JWT signing, and JWKS serving.
 type TokenManager struct {
 	privateKey *rsa.PrivateKey
+	signingKey jwk.Key
 	publicSet  jwk.Set
 	expiry     time.Duration
 }
@@ -50,6 +51,7 @@ func NewTokenManager(keyPath string, expiry time.Duration) (*TokenManager, error
 
 	return &TokenManager{
 		privateKey: privKey,
+		signingKey: privJWK,
 		publicSet:  set,
 		expiry:     expiry,
 	}, nil
@@ -72,7 +74,7 @@ func (tm *TokenManager) SignAccessToken(userID, email string, roles []string) (s
 		}
 	}
 
-	signed, err := jwt.Sign(token, jwt.WithKey(jwa.RS256, tm.privateKey))
+	signed, err := jwt.Sign(token, jwt.WithKey(jwa.RS256, tm.signingKey))
 	if err != nil {
 		return "", fmt.Errorf("sign token: %w", err)
 	}
