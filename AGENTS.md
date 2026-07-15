@@ -75,11 +75,24 @@ Traefik labels · in-app resilience · unit + **testcontainers** tests.
 - lsp/build clean; no suppressed type/lint errors
 - one smoke request through the BFF works
 
+## Dark mode (mandatory for all UI)
+- **Every UI component MUST include `dark:` Tailwind variants.** No light-only components.
+- Theme toggle (sun/moon) lives in the Navbar. Theme stored in `localStorage` key `verso_theme`.
+- Tailwind v4 class-based dark mode via `@custom-variant dark (&:where(.dark, .dark *));` in `globals.css`.
+- Anti-FOUC inline script in `layout.tsx` reads theme before React hydrates.
+- **Dark palette:** `bg-[#0C0A09]` body, `bg-stone-900` cards, `text-stone-100` headings,
+  `text-stone-400` muted, `border-stone-700` borders, `text-amber-400` accents.
+- **Light palette:** `bg-[var(--color-cream)]` body, `bg-white` cards, `text-stone-900` headings,
+  `text-stone-500` muted, `border-stone-200` borders, `text-amber-700` accents.
+- When adding new pages or components: use both `bg-white dark:bg-stone-900`, `text-stone-900 dark:text-stone-100`, etc.
+- Theme provider: `web/src/lib/theme.tsx` — import `useTheme()` hook if component needs theme state.
+
 ## Do NOT
 - Use **gRPC** (as transport), **Kubernetes**, a service mesh, or any cloud dependency.
 - Add **cross-service DB foreign keys** or read another service's schema directly.
 - Rename or add canonical services/events/entities without first updating `../docs/00`.
 - Suppress type/lint errors, leave `docker-compose` broken, or build many services in one session.
+- Ship any UI page or component **without `dark:` Tailwind variants**.
 
 ## Workflow (one unit per session)
 `read ../docs/07-build-plan.md` → **plan mode** (load only the relevant spec slices) → finalize →

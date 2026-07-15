@@ -48,10 +48,11 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-900">
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-900
+            dark:text-stone-100">
             Welcome back
           </h1>
-          <p className="mt-2 text-sm text-stone-500">
+          <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
             Sign in to continue your reading journey.
           </p>
         </div>
@@ -59,13 +60,15 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700
+              dark:border-red-800 dark:bg-red-950 dark:text-red-400">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="email" className="block text-sm font-medium text-stone-700
+              dark:text-stone-300">
               Email
             </label>
             <input
@@ -77,13 +80,16 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full rounded-md border border-stone-300 bg-white px-3 py-2
                 text-sm text-stone-900 shadow-sm transition-colors placeholder:text-stone-400
-                focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/10"
+                focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/10
+                dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100
+                dark:placeholder:text-stone-500"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="password" className="block text-sm font-medium text-stone-700
+              dark:text-stone-300">
               Password
             </label>
             <input
@@ -95,7 +101,9 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full rounded-md border border-stone-300 bg-white px-3 py-2
                 text-sm text-stone-900 shadow-sm transition-colors placeholder:text-stone-400
-                focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/10"
+                focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/10
+                dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100
+                dark:placeholder:text-stone-500"
               placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
             />
           </div>
@@ -105,18 +113,19 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white
               shadow-sm transition-colors hover:bg-stone-800 disabled:cursor-not-allowed
-              disabled:opacity-50"
+              disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
           >
             {loading ? 'Signing in\u2026' : 'Sign in'}
           </button>
         </form>
 
         {/* Link to register */}
-        <p className="mt-6 text-center text-sm text-stone-500">
+        <p className="mt-6 text-center text-sm text-stone-500 dark:text-stone-400">
           Don&apos;t have an account?{' '}
           <Link
             href="/register"
-            className="font-medium text-amber-700 transition-colors hover:text-amber-800"
+            className="font-medium text-amber-700 transition-colors hover:text-amber-800
+              dark:text-amber-400 dark:hover:text-amber-300"
           >
             Create one
           </Link>

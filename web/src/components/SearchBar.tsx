@@ -27,7 +27,7 @@ export default function SearchBar({
       <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
         <svg
           aria-hidden="true"
-          className="h-4 w-4 text-stone-400"
+          className="h-4 w-4 text-stone-400 dark:text-stone-500"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={2}
@@ -47,7 +47,9 @@ export default function SearchBar({
         placeholder={placeholder}
         className="w-full rounded-lg border border-stone-200 bg-white py-2.5 pl-11 pr-4 text-sm
           text-stone-800 shadow-sm transition-colors placeholder:text-stone-400
-          focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/10"
+          focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/10
+          dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200
+          dark:placeholder:text-stone-500"
       />
     </div>
   );
