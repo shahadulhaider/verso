@@ -1,8 +1,11 @@
 version: '3'
 
+dotenv: ['.env']
+
 vars:
   COMPOSE_FILE: deploy/docker-compose.yml
   COMPOSE_CMD: docker compose --env-file .env -f {{.COMPOSE_FILE}}
+  DATABASE_URL: postgres://verso:{{.POSTGRES_PASSWORD}}@localhost:{{.POSTGRES_PORT}}
 
 tasks:
   up:
@@ -56,7 +59,7 @@ tasks:
               "database.password": "verso_dev",
               "database.dbname": "verso",
               "topic.prefix": "verso",
-              "table.include.list": "*.outbox_events",
+              "table.include.list": ".*\\.outbox_events",
               "transforms": "outbox",
               "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
               "plugin.name": "pgoutput"
@@ -74,3 +77,27 @@ tasks:
     desc: Tail logs (all or specific service)
     cmds:
       - "{{.COMPOSE_CMD}} logs -f {{.CLI_ARGS}}"
+
+  migrate:
+    desc: Run all service migrations
+    cmds:
+      - task: migrate:identity
+      - task: migrate:catalog
+
+  migrate:identity:
+    desc: Run identity service migrations
+    dir: services/verso-identity-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=identity&sslmode=disable" up
+
+  migrate:catalog:
+    desc: Run catalog service migrations
+    dir: services/verso-catalog-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=catalog&sslmode=disable" up
+
+  dev:web:
+    desc: Start Next.js dev server
+    dir: web
+    cmds:
+      - pnpm dev

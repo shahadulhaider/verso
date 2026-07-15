@@ -38,6 +38,7 @@ services:
     volumes:
       - pg-data:/var/lib/postgresql/data
       - ./init/01-init-extensions.sql:/docker-entrypoint-initdb.d/01-init-extensions.sql
+      - ./init/02-service-schemas.sql:/docker-entrypoint-initdb.d/02-service-schemas.sql
     ports:
       - "${POSTGRES_PORT}:5432"
     networks: [verso-net]
@@ -110,7 +111,7 @@ services:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true
       - DISABLE_INSTALL_DEMO_CONFIG=true
-      - OPENSEARCH_JAVA_OPTS=-Xms128m -Xmx128m
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
     ulimits:
       memlock:
         soft: -1
@@ -230,6 +231,122 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # ─── Identity Service ─────────────────────────────────────────────────
+  verso-identity-service:
+    build:
+      context: ..
+      dockerfile: services/verso-identity-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=identity&sslmode=disable
+      PORT: "8001"
+      JWT_KEY_PATH: /tmp/verso-jwt-key.pem
+      JWT_EXPIRY: ${IDENTITY_JWT_EXPIRY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.identity.rule=PathPrefix(`/v1/auth`) || PathPrefix(`/.well-known`)"
+      - "traefik.http.services.identity.loadbalancer.server.port=8001"
+    networks: [verso-net]
+
+  # ─── Catalog Service ──────────────────────────────────────────────────
+  verso-catalog-service:
+    build:
+      context: ..
+      dockerfile: services/verso-catalog-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=catalog&sslmode=disable
+      PORT: "8002"
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.catalog.rule=PathPrefix(`/v1/works`) || PathPrefix(`/v1/editions`)"
+      - "traefik.http.services.catalog.loadbalancer.server.port=8002"
+    networks: [verso-net]
+
+  # ─── Search Service ───────────────────────────────────────────────────
+  verso-search-service:
+    build:
+      context: ..
+      dockerfile: services/verso-search-service/Dockerfile
+    environment:
+      <<: *common-env
+      PORT: "8003"
+      OPENSEARCH_URL: http://opensearch:9200
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-catalog-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.search.rule=PathPrefix(`/v1/search`)"
+      - "traefik.http.services.search.loadbalancer.server.port=8003"
+    networks: [verso-net]
+
+  # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
+  web-bff:
+    build:
+      context: ../services/web-bff
+      dockerfile: Dockerfile
+    ports:
+      - "${BFF_PORT}:8010"
+    environment:
+      PORT: "8010"
+      IDENTITY_SERVICE_URL: http://verso-identity-service:8001
+      CATALOG_SERVICE_URL: http://verso-catalog-service:8002
+      SEARCH_SERVICE_URL: http://verso-search-service:8003
+    depends_on:
+      verso-identity-service:
+        condition: service_healthy
+      verso-catalog-service:
+        condition: service_healthy
+      verso-search-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8010/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bff.rule=PathPrefix(`/api`)"
+      - "traefik.http.services.bff.loadbalancer.server.port=8010"
+    networks: [verso-net]
 
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
