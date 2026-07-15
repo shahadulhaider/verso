@@ -44,10 +44,22 @@ func main() {
 		defer shutdown(ctx)
 	}
 
-	// OpenSearch client.
+	// OpenSearch client — retry connection with backoff.
 	osClient := opensearch.New(cfg.OpenSearchURL, log)
-	if err := osClient.EnsureIndex(ctx); err != nil {
-		log.Error("ensure opensearch index", slog.String("error", err.Error()))
+	var osReady bool
+	for attempt := 1; attempt <= 10; attempt++ {
+		if err := osClient.EnsureIndex(ctx); err != nil {
+			log.Warn("opensearch not ready, retrying...",
+				slog.String("error", err.Error()),
+				slog.Int("attempt", attempt))
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		osReady = true
+		break
+	}
+	if !osReady {
+		log.Error("opensearch unavailable after 10 retries")
 		os.Exit(1)
 	}
 
