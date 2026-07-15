@@ -322,6 +322,8 @@ services:
     build:
       context: ../services/web-bff
       dockerfile: Dockerfile
+    ports:
+      - "${BFF_PORT}:8010"
     environment:
       PORT: "8010"
       IDENTITY_SERVICE_URL: http://verso-identity-service:8001
