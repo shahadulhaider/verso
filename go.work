@@ -9,4 +9,5 @@ use (
 	./services/verso-profile-service
 	./services/verso-review-service
 	./services/verso-search-service
+	./services/verso-social-service
 )

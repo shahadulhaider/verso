@@ -404,6 +404,35 @@ services:
       - "traefik.http.services.review.loadbalancer.server.port=${REVIEW_SERVICE_PORT}"
     networks: [verso-net]
 
+  # ─── Social Service ────────────────────────────────────────────────────
+  verso-social-service:
+    build:
+      context: ..
+      dockerfile: services/verso-social-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=social&sslmode=disable
+      SERVICE_PORT: ${SOCIAL_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.social.rule=PathPrefix(`/v1/social`)"
+      - "traefik.http.services.social.loadbalancer.server.port=${SOCIAL_SERVICE_PORT}"
+    networks: [verso-net]
+
   # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
   web-bff:
     build:
