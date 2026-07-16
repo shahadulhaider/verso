@@ -14,7 +14,7 @@ class TestEndpoints:
             patch("verso_ai_inference.main.vector_store") as mock_vs,
             patch("verso_ai_inference.main.embedder") as mock_emb,
             patch("verso_ai_inference.main.catalog_consumer") as mock_consumer,
-            patch("verso_ai_inference.main._init_telemetry"),
+            patch("verso_ai_inference.main.init_telemetry", return_value=lambda: None),
         ):
             mock_vs.connect = AsyncMock()
             mock_vs.close = AsyncMock()

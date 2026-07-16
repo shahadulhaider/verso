@@ -4,15 +4,13 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import httpx
-import structlog
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pydantic import BaseModel, Field
+from verso.errors import create_problem, problem_json_response
+from verso.logger import create_logger
+from verso.otel import init_telemetry
 
 from verso_ai_inference.config import settings
 from verso_ai_inference.consumer import catalog_consumer
@@ -20,36 +18,13 @@ from verso_ai_inference.embedder import embedder
 from verso_ai_inference.vector_store import vector_store
 
 
-def _init_telemetry() -> None:
-    resource = Resource.create({"service.name": settings.service_name})
-    provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint, insecure=True
-    )
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
-
-
-logger = structlog.get_logger(service="verso-ai-inference")
+logger = create_logger("verso-ai-inference")
 tracer = trace.get_tracer("verso-ai-inference")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    _init_telemetry()
-    structlog.configure(
-        processors=[
-            structlog.contextvars.merge_contextvars,
-            structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(),
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=True,
-    )
+    _shutdown_otel = init_telemetry(settings.service_name)
 
     embedder.set_client(httpx.AsyncClient())
     await vector_store.connect()
@@ -65,6 +40,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await catalog_consumer.stop()
     await embedder.close()
     await vector_store.close()
+    _shutdown_otel()
     logger.info("shutdown_complete")
 
 
@@ -116,15 +92,8 @@ async def embed(req: EmbedRequest) -> JSONResponse:
 
         result = await embedder.embed(req.text)
         if result is None:
-            return JSONResponse(
-                content={
-                    "type": "https://httpstatuses.io/502",
-                    "title": "LLM Gateway Unavailable",
-                    "status": 502,
-                    "detail": "Could not generate embedding — LLM gateway unreachable",
-                },
-                status_code=502,
-            )
+            problem = create_problem(502, "LLM Gateway Unavailable", "Could not generate embedding — LLM gateway unreachable")
+            return JSONResponse(content=problem_json_response(problem), status_code=502)
 
         span.set_attribute("dimensions", result.dimensions)
         span.set_attribute("model_id", result.model_id)

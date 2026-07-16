@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import httpx
+import pybreaker
 
 from verso_llm_gateway.config import settings
+
+# Circuit breaker for Ollama outbound calls — opens after 5 consecutive
+# failures and resets after 30 s, preventing cascading timeouts.
+ollama_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=30, name="ollama")
 
 
 class OllamaError(Exception):
@@ -57,6 +62,7 @@ class OllamaClient:
         except (httpx.ConnectError, httpx.TimeoutException):
             return False
 
+    @ollama_breaker
     async def _post(self, path: str, body: dict) -> dict:
         try:
             resp = await self.client.post(

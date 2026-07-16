@@ -69,7 +69,7 @@ class TestEndpoints:
             patch("verso_llm_gateway.main.llm_cache") as mock_cache,
             patch("verso_llm_gateway.main.ollama_client") as mock_ollama,
             patch("verso_llm_gateway.main.prompt_registry") as mock_registry,
-            patch("verso_llm_gateway.main._init_telemetry"),
+            patch("verso_llm_gateway.main.init_telemetry", return_value=lambda: None),
         ):
             mock_cache.connect = AsyncMock()
             mock_cache.close = AsyncMock()

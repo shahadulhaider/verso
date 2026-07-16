@@ -17,6 +17,8 @@ dependencies = [
   "opentelemetry-exporter-otlp-proto-grpc>=1.25",
   "structlog>=24.0",
   "numpy>=1.26",
+  "verso-libs @ file:../../libs/py",
+  "pybreaker>=1.2",
 ]
 
 [project.optional-dependencies]

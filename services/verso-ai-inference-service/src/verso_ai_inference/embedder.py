@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import httpx
-import structlog
+import pybreaker
+from verso.logger import create_logger
 
 from verso_ai_inference.config import settings
 
-logger = structlog.get_logger(component="embedder")
+logger = create_logger("verso-ai-inference.embedder")
+
+# Circuit breaker for LLM gateway outbound calls — opens after 5 consecutive
+# failures and resets after 30 s, preventing cascading timeouts.
+gateway_breaker = pybreaker.CircuitBreaker(fail_max=5, reset_timeout=30, name="llm-gateway")
 
 
 class EmbeddingResult:
@@ -37,6 +42,15 @@ class Embedder:
 
     async def embed(self, text: str) -> EmbeddingResult | None:
         """Call LLM gateway to generate an embedding. Returns None on failure."""
+        try:
+            return await self._do_embed(text)
+        except pybreaker.CircuitBreakerError:
+            logger.warning("llm_gateway_circuit_open", detail="Circuit breaker open — skipping embedding")
+            return None
+
+    @gateway_breaker
+    async def _do_embed(self, text: str) -> EmbeddingResult | None:
+        """Inner method wrapped by the circuit breaker."""
         url = f"{settings.llm_gateway_url}/v1/llm/embed"
         try:
             resp = await self.client.post(
@@ -57,10 +71,10 @@ class Embedder:
                 status=exc.response.status_code,
                 detail=exc.response.text[:200],
             )
-            return None
+            raise  # Let breaker count this as a failure
         except (httpx.ConnectError, httpx.TimeoutException) as exc:
             logger.warning("llm_gateway_unavailable", error=str(exc))
-            return None
+            raise  # Let breaker count this as a failure
 
     async def close(self) -> None:
         if self._client:

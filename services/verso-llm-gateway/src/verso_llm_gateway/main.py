@@ -6,16 +6,15 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 import httpx
-import structlog
+import pybreaker
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from pydantic import BaseModel, Field
 from ulid import ULID
+from verso.errors import create_problem, problem_json_response
+from verso.logger import create_logger
+from verso.otel import init_telemetry
 
 from verso_llm_gateway.cache import cache_key, llm_cache
 from verso_llm_gateway.config import settings
@@ -24,36 +23,13 @@ from verso_llm_gateway.registry import prompt_registry
 from verso_llm_gateway.router import resolve_model
 
 
-def _init_telemetry() -> None:
-    resource = Resource.create({"service.name": settings.service_name})
-    provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint, insecure=True
-    )
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
-
-
-logger = structlog.get_logger(service="verso-llm-gateway")
+logger = create_logger("verso-llm-gateway")
 tracer = trace.get_tracer("verso-llm-gateway")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    _init_telemetry()
-    structlog.configure(
-        processors=[
-            structlog.contextvars.merge_contextvars,
-            structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(),
-        ],
-        wrapper_class=structlog.stdlib.BoundLogger,
-        context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=True,
-    )
+    _shutdown_otel = init_telemetry(settings.service_name)
 
     ollama_client.set_client(httpx.AsyncClient())
     await llm_cache.connect()
@@ -69,6 +45,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await ollama_client.client.aclose()
     await llm_cache.close()
     await prompt_registry.close()
+    _shutdown_otel()
     logger.info("shutdown_complete")
 
 
@@ -158,12 +135,14 @@ async def complete(req: CompleteRequest) -> JSONResponse:
                 max_tokens=req.max_tokens,
                 temperature=req.temperature,
             )
+        except pybreaker.CircuitBreakerError:
+            span.set_attribute("error", True)
+            problem = create_problem(503, "Service Unavailable", "Ollama service unavailable (circuit breaker open)")
+            return JSONResponse(content=problem_json_response(problem), status_code=503)
         except OllamaError as exc:
             span.set_attribute("error", True)
-            return JSONResponse(
-                content={"type": f"https://httpstatuses.io/{exc.status_code}", "title": "LLM Error", "status": exc.status_code, "detail": exc.detail},
-                status_code=exc.status_code,
-            )
+            problem = create_problem(exc.status_code, "LLM Error", exc.detail)
+            return JSONResponse(content=problem_json_response(problem), status_code=exc.status_code)
 
         latency = int((time.monotonic() - start) * 1000)
         input_tokens = result.get("prompt_eval_count", 0)
@@ -208,12 +187,14 @@ async def embed(req: EmbedRequest) -> JSONResponse:
 
         try:
             result = await ollama_client.embed(model=model_id, text=req.text)
+        except pybreaker.CircuitBreakerError:
+            span.set_attribute("error", True)
+            problem = create_problem(503, "Service Unavailable", "Ollama service unavailable (circuit breaker open)")
+            return JSONResponse(content=problem_json_response(problem), status_code=503)
         except OllamaError as exc:
             span.set_attribute("error", True)
-            return JSONResponse(
-                content={"type": f"https://httpstatuses.io/{exc.status_code}", "title": "LLM Error", "status": exc.status_code, "detail": exc.detail},
-                status_code=exc.status_code,
-            )
+            problem = create_problem(exc.status_code, "LLM Error", exc.detail)
+            return JSONResponse(content=problem_json_response(problem), status_code=exc.status_code)
 
         latency = int((time.monotonic() - start) * 1000)
         embeddings = result.get("embeddings", [[]])[0]
@@ -249,12 +230,14 @@ async def moderate(req: ModerateRequest) -> JSONResponse:
 
         try:
             result = await ollama_client.generate(model=model_id, prompt=prompt)
+        except pybreaker.CircuitBreakerError:
+            span.set_attribute("error", True)
+            problem = create_problem(503, "Service Unavailable", "Ollama service unavailable (circuit breaker open)")
+            return JSONResponse(content=problem_json_response(problem), status_code=503)
         except OllamaError as exc:
             span.set_attribute("error", True)
-            return JSONResponse(
-                content={"type": f"https://httpstatuses.io/{exc.status_code}", "title": "LLM Error", "status": exc.status_code, "detail": exc.detail},
-                status_code=exc.status_code,
-            )
+            problem = create_problem(exc.status_code, "LLM Error", exc.detail)
+            return JSONResponse(content=problem_json_response(problem), status_code=exc.status_code)
 
         latency = int((time.monotonic() - start) * 1000)
         span.set_attribute("latency_ms", latency)
