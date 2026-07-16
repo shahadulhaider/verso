@@ -498,6 +498,35 @@ services:
       - "traefik.http.services.media.loadbalancer.server.port=${MEDIA_SERVICE_PORT}"
     networks: [verso-net]
 
+  # ─── LLM Gateway (Python/FastAPI — AI model routing) ───────────────────
+  verso-llm-gateway:
+    build:
+      context: ../services/verso-llm-gateway
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?options=-c%20search_path%3Dai
+      SERVICE_PORT: ${LLM_GATEWAY_PORT}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2
+      OLLAMA_EMBED_MODEL: nomic-embed-text
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${LLM_GATEWAY_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.llm-gateway.rule=PathPrefix(`/v1/llm`)"
+      - "traefik.http.services.llm-gateway.loadbalancer.server.port=${LLM_GATEWAY_PORT}"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d
