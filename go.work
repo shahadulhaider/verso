@@ -5,6 +5,7 @@ use (
 	./libs/go
 	./services/verso-catalog-service
 	./services/verso-identity-service
+	./services/verso-library-service
 	./services/verso-profile-service
 	./services/verso-search-service
 )

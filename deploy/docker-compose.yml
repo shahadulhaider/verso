@@ -346,6 +346,35 @@ services:
       - "traefik.http.services.profile.loadbalancer.server.port=${PROFILE_SERVICE_PORT}"
     networks: [verso-net]
 
+  # ─── Library Service ──────────────────────────────────────────────────
+  verso-library-service:
+    build:
+      context: ..
+      dockerfile: services/verso-library-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=library&sslmode=disable
+      SERVICE_PORT: ${LIBRARY_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.library.rule=PathPrefix(`/v1/library`)"
+      - "traefik.http.services.library.loadbalancer.server.port=${LIBRARY_SERVICE_PORT}"
+    networks: [verso-net]
+
   # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
   web-bff:
     build:
