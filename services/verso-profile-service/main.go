@@ -102,12 +102,13 @@ func main() {
 	r.Get("/health", h.Health)
 	r.Get("/ready", h.Ready)
 
-	r.Get("/v1/profiles/{userId}", h.GetProfile)
-
 	r.Group(func(r chi.Router) {
 		r.Use(versojwt.Middleware(jwtValidator))
+		r.Get("/v1/profiles/me", h.GetMyProfile)
 		r.Patch("/v1/profiles/me", h.UpdateProfile)
 	})
+
+	r.Get("/v1/profiles/{userId}", h.GetProfile)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

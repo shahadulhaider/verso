@@ -1,12 +1,15 @@
 FROM python:3.12-slim AS builder
-
 WORKDIR /build
 
-COPY pyproject.toml .
-RUN pip install --no-cache-dir --prefix=/install .
+# Copy shared Python libs (resolves verso-libs @ file:../../libs/py)
+COPY libs/py/ libs/py/
 
-COPY src/ src/
-RUN pip install --no-cache-dir --prefix=/install --no-deps .
+# Copy service source + config (src/ must exist for setuptools egg_info)
+COPY services/verso-llm-gateway/pyproject.toml services/verso-llm-gateway/
+COPY services/verso-llm-gateway/src/ services/verso-llm-gateway/src/
+
+WORKDIR /build/services/verso-llm-gateway
+RUN pip install --no-cache-dir --prefix=/install .
 
 FROM python:3.12-slim
 
@@ -15,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 COPY --from=builder /install /usr/local
 
 WORKDIR /app
-COPY src/ src/
+COPY --from=builder /build/services/verso-llm-gateway/src/ src/
 
 ENV PYTHONUNBUFFERED=1
 

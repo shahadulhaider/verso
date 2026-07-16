@@ -62,6 +62,15 @@ tasks:
               "table.include.list": ".*\\.outbox_events",
               "transforms": "outbox",
               "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+              "transforms.outbox.table.field.event.id": "event_id",
+              "transforms.outbox.table.field.event.key": "aggregate_id",
+              "transforms.outbox.table.field.event.type": "event_type",
+              "transforms.outbox.table.field.event.payload": "payload",
+              "transforms.outbox.table.fields.additional.placement": "event_type:header:eventType",
+              "transforms.outbox.route.by.field": "event_type",
+              "transforms.outbox.route.topic.replacement": "${routedByValue}",
+              "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+              "key.converter": "org.apache.kafka.connect.storage.StringConverter",
               "plugin.name": "pgoutput"
             }
           }'

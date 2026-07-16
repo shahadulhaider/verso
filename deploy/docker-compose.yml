@@ -520,8 +520,8 @@ services:
   # ─── LLM Gateway (Python/FastAPI — AI model routing) ───────────────────
   verso-llm-gateway:
     build:
-      context: ../services/verso-llm-gateway
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/verso-llm-gateway/Dockerfile
     environment:
       <<: *common-env
       DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?options=-c%20search_path%3Dai
@@ -549,8 +549,8 @@ services:
   # ─── AI Inference Service (Python/FastAPI — embeddings + vector search) ──
   verso-ai-inference-service:
     build:
-      context: ../services/verso-ai-inference-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/verso-ai-inference-service/Dockerfile
     environment:
       <<: *common-env
       DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?options=-c%20search_path%3Dai

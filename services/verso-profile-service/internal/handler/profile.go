@@ -40,6 +40,33 @@ func (h *ProfileHandler) Ready(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
 }
 
+func (h *ProfileHandler) GetMyProfile(w http.ResponseWriter, r *http.Request) {
+	claims, ok := versojwt.ClaimsFromContext(r.Context())
+	if !ok {
+		versoerrors.Unauthorized("missing claims").WriteJSON(w)
+		return
+	}
+
+	result, err := h.cb.Execute(func() (any, error) {
+		p, err := h.svc.GetProfile(r.Context(), claims.UserID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, nil
+		}
+		return p, err
+	})
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+	if result == nil {
+		versoerrors.NotFound("profile not found").WriteJSON(w)
+		return
+	}
+
+	profile := result.(*repository.Profile)
+	writeJSON(w, http.StatusOK, toProfileResponse(profile))
+}
+
 func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userId")
 	if userID == "" {
@@ -48,10 +75,18 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.cb.Execute(func() (any, error) {
-		return h.svc.GetProfile(r.Context(), userID)
+		p, err := h.svc.GetProfile(r.Context(), userID)
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, nil
+		}
+		return p, err
 	})
 	if err != nil {
 		h.handleError(w, err)
+		return
+	}
+	if result == nil {
+		versoerrors.NotFound("profile not found").WriteJSON(w)
 		return
 	}
 
@@ -73,10 +108,18 @@ func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.cb.Execute(func() (any, error) {
-		return h.svc.UpdateProfile(r.Context(), claims.UserID, req)
+		p, err := h.svc.UpdateProfile(r.Context(), claims.UserID, req)
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, nil
+		}
+		return p, err
 	})
 	if err != nil {
 		h.handleError(w, err)
+		return
+	}
+	if result == nil {
+		versoerrors.NotFound("profile not found").WriteJSON(w)
 		return
 	}
 

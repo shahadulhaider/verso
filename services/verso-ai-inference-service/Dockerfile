@@ -1,12 +1,15 @@
 FROM python:3.12-slim AS builder
-
 WORKDIR /build
 
-COPY pyproject.toml .
-RUN pip install --no-cache-dir --prefix=/install .
+# Copy shared Python libs (resolves verso-libs @ file:../../libs/py)
+COPY libs/py/ libs/py/
 
-COPY src/ src/
-RUN pip install --no-cache-dir --prefix=/install --no-deps .
+# Copy service source + config
+COPY services/verso-ai-inference-service/pyproject.toml services/verso-ai-inference-service/
+COPY services/verso-ai-inference-service/src/ services/verso-ai-inference-service/src/
+
+WORKDIR /build/services/verso-ai-inference-service
+RUN pip install --no-cache-dir --prefix=/install .
 
 FROM python:3.12-slim
 
@@ -15,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 COPY --from=builder /install /usr/local
 
 WORKDIR /app
-COPY src/ src/
+COPY --from=builder /build/services/verso-ai-inference-service/src/ src/
 
 ENV PYTHONUNBUFFERED=1
 
