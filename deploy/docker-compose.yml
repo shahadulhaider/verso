@@ -527,6 +527,35 @@ services:
       - "traefik.http.services.llm-gateway.loadbalancer.server.port=${LLM_GATEWAY_PORT}"
     networks: [verso-net]
 
+  # ─── AI Inference Service (Python/FastAPI — embeddings + vector search) ──
+  verso-ai-inference-service:
+    build:
+      context: ../services/verso-ai-inference-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?options=-c%20search_path%3Dai
+      SERVICE_PORT: ${AI_INFERENCE_PORT}
+      LLM_GATEWAY_URL: http://verso-llm-gateway:${LLM_GATEWAY_PORT}
+      KAFKA_BROKERS: redpanda:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-llm-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${AI_INFERENCE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai-inference.rule=PathPrefix(`/v1/ai`)"
+      - "traefik.http.services.ai-inference.loadbalancer.server.port=${AI_INFERENCE_PORT}"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d
