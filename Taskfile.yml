@@ -88,7 +88,7 @@ tasks:
       - "{{.COMPOSE_CMD}} logs -f {{.CLI_ARGS}}"
 
   migrate:
-    desc: Run all service migrations
+    desc: Run all service migrations (Go services via goose; Node services migrate on startup)
     cmds:
       - task: migrate:identity
       - task: migrate:catalog
@@ -96,8 +96,6 @@ tasks:
       - task: migrate:library
       - task: migrate:review
       - task: migrate:social
-      - task: migrate:feed
-      - task: migrate:media
 
   migrate:identity:
     desc: Run identity service migrations
@@ -135,17 +133,7 @@ tasks:
     cmds:
       - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=social&sslmode=disable" up
 
-  migrate:feed:
-    desc: Run feed service migrations
-    dir: services/verso-feed-service
-    cmds:
-      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=feed&sslmode=disable" up
 
-  migrate:media:
-    desc: Run media service migrations
-    dir: services/verso-media-service
-    cmds:
-      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=media&sslmode=disable" up
 
   dev:web:
     desc: Start Next.js dev server
