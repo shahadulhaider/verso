@@ -29,7 +29,7 @@ async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
 
   await app.register(cors, {
-    origin: "http://localhost:3000",
+    origin: "http://localhost:3100",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type"],
   });
@@ -255,17 +255,17 @@ describe("web-bff routes", () => {
 
   // ── CORS ──────────────────────────────────────────────────────────────
   describe("CORS", () => {
-    it("allows requests from http://localhost:3000", async () => {
+    it("allows requests from http://localhost:3100", async () => {
       const res = await app.inject({
         method: "OPTIONS",
         url: "/api/v1/books",
         headers: {
-          origin: "http://localhost:3000",
+          origin: "http://localhost:3100",
           "access-control-request-method": "GET",
         },
       });
       expect(res.headers["access-control-allow-origin"]).toBe(
-        "http://localhost:3000",
+        "http://localhost:3100",
       );
     });
 
@@ -274,7 +274,7 @@ describe("web-bff routes", () => {
         method: "OPTIONS",
         url: "/api/v1/books",
         headers: {
-          origin: "http://localhost:3000",
+          origin: "http://localhost:3100",
           "access-control-request-method": "POST",
         },
       });
