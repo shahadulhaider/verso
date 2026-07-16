@@ -108,6 +108,11 @@ func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
 	return c, ok
 }
 
+// NewContext returns a context carrying the given Claims (useful in tests).
+func NewContext(ctx context.Context, claims *Claims) context.Context {
+	return context.WithValue(ctx, claimsKey{}, claims)
+}
+
 // Middleware returns an HTTP middleware that validates Bearer tokens via the JWKSValidator.
 func Middleware(v *JWKSValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

@@ -317,6 +317,35 @@ services:
       - "traefik.http.services.search.loadbalancer.server.port=8003"
     networks: [verso-net]
 
+  # ─── Profile Service ──────────────────────────────────────────────────
+  verso-profile-service:
+    build:
+      context: ..
+      dockerfile: services/verso-profile-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=profile&sslmode=disable
+      SERVICE_PORT: ${PROFILE_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.profile.rule=PathPrefix(`/v1/profiles`)"
+      - "traefik.http.services.profile.loadbalancer.server.port=${PROFILE_SERVICE_PORT}"
+    networks: [verso-net]
+
   # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
   web-bff:
     build:
@@ -329,12 +358,15 @@ services:
       IDENTITY_SERVICE_URL: http://verso-identity-service:8001
       CATALOG_SERVICE_URL: http://verso-catalog-service:8002
       SEARCH_SERVICE_URL: http://verso-search-service:8003
+      PROFILE_SERVICE_URL: http://verso-profile-service:${PROFILE_SERVICE_PORT}
     depends_on:
       verso-identity-service:
         condition: service_healthy
       verso-catalog-service:
         condition: service_healthy
       verso-search-service:
+        condition: service_healthy
+      verso-profile-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8010/health"]
