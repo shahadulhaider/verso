@@ -560,6 +560,34 @@ services:
       - "traefik.http.services.ai-inference.loadbalancer.server.port=${AI_INFERENCE_PORT}"
     networks: [verso-net]
 
+  # ─── Feed Service (Node/Fastify — activity fan-out + timeline) ─────────
+  verso-feed-service:
+    build:
+      context: ../services/verso-feed-service
+      dockerfile: Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=feed&sslmode=disable
+      SERVICE_PORT: ${FEED_SERVICE_PORT}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/2
+      SOCIAL_SERVICE_URL: http://verso-social-service:${SOCIAL_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      verso-social-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${FEED_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.feed.rule=PathPrefix(`/v1/feed`)"
+      - "traefik.http.services.feed.loadbalancer.server.port=${FEED_SERVICE_PORT}"
+    networks: [verso-net]
+
   # ═══════════════════════════════════════════════════════════════════════
   # Profile: observability
   # Usage: docker compose --profile observability up -d

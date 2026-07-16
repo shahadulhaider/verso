@@ -1,0 +1,32 @@
+{
+  "name": "@verso/feed-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "^5.3.3",
+    "ioredis": "^5.6.1",
+    "jose": "^6.0.11",
+    "kafkajs": "^2.2.4",
+    "opossum": "^8.4.2",
+    "pg": "^8.16.0",
+    "pino": "^9.6.0",
+    "ulid": "^2.3.0",
+    "undici": "^8.7.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/opossum": "^8.1.7",
+    "@types/pg": "^8.15.4",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
+  }
+}
