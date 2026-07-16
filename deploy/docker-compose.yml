@@ -450,6 +450,11 @@ services:
       CATALOG_SERVICE_URL: http://verso-catalog-service:8002
       SEARCH_SERVICE_URL: http://verso-search-service:8003
       PROFILE_SERVICE_URL: http://verso-profile-service:${PROFILE_SERVICE_PORT}
+      MEDIA_SERVICE_URL: http://verso-media-service:${MEDIA_SERVICE_PORT}
+      LIBRARY_SERVICE_URL: http://verso-library-service:${LIBRARY_SERVICE_PORT}
+      REVIEW_SERVICE_URL: http://verso-review-service:${REVIEW_SERVICE_PORT}
+      SOCIAL_SERVICE_URL: http://verso-social-service:${SOCIAL_SERVICE_PORT}
+      FEED_SERVICE_URL: http://verso-feed-service:${FEED_SERVICE_PORT}
     depends_on:
       verso-identity-service:
         condition: service_healthy
@@ -458,6 +463,16 @@ services:
       verso-search-service:
         condition: service_healthy
       verso-profile-service:
+        condition: service_healthy
+      verso-media-service:
+        condition: service_healthy
+      verso-library-service:
+        condition: service_healthy
+      verso-review-service:
+        condition: service_healthy
+      verso-social-service:
+        condition: service_healthy
+      verso-feed-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8010/health"]
