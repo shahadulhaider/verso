@@ -1,0 +1,9 @@
+syntax = "proto3";
+package verso.profile.v1;
+
+// ProfileUpdated is emitted when a user updates their profile fields.
+message ProfileUpdated {
+  string user_id = 1;                  // ULID
+  repeated string changed_fields = 2;  // list of field names that changed
+  string updated_at = 3;               // ISO-8601 UTC
+}

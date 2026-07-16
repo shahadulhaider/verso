@@ -1,0 +1,9 @@
+syntax = "proto3";
+package verso.social.v1;
+
+// UserFollowed is emitted when a user follows another user.
+message UserFollowed {
+  string follower_id = 1;  // ULID of the follower
+  string followee_id = 2;  // ULID of the user being followed
+  string followed_at = 3;  // ISO-8601 UTC
+}

@@ -1,0 +1,10 @@
+syntax = "proto3";
+package verso.ai.v1;
+
+// EmbeddingIndexed is emitted when an entity's embedding is stored or updated.
+message EmbeddingIndexed {
+  string entity_type = 1;     // e.g. "work", "review", "user"
+  string entity_id = 2;       // ULID
+  string embedding_model = 3; // model identifier
+  int32 dimensions = 4;       // vector dimensionality
+}

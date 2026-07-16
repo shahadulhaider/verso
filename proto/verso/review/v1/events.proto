@@ -1,0 +1,20 @@
+syntax = "proto3";
+package verso.review.v1;
+
+// ReviewPublished is emitted when a user publishes a review.
+message ReviewPublished {
+  string review_id = 1;   // ULID
+  string user_id = 2;     // ULID of the reviewer
+  string work_id = 3;     // ULID of the reviewed work
+  double rating = 4;      // numeric rating
+  bool has_spoilers = 5;  // whether the review contains spoilers
+}
+
+// RatingUpdated is emitted when a user changes their rating on a review.
+message RatingUpdated {
+  string review_id = 1;  // ULID
+  string user_id = 2;    // ULID of the reviewer
+  string work_id = 3;    // ULID of the reviewed work
+  double old_rating = 4;
+  double new_rating = 5;
+}
