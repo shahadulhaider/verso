@@ -1,3 +1,4 @@
+import "./lib/otel.js";
 import Fastify from "fastify";
 import { loadConfig } from "./config.js";
 import { getPool, runMigrations } from "./lib/db.js";

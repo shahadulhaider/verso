@@ -1,22 +1,37 @@
 import { request as undiciRequest } from "undici";
+import CircuitBreaker from "opossum";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
 export interface ProxyOptions {
-  /** Full backend URL (e.g. http://verso-identity-service:8001/v1/auth/login) */
   target: string;
-  /** HTTP method override; defaults to the incoming request method */
   method?: string;
 }
 
-/**
- * Forward an incoming Fastify request to a backend service.
- *
- * - Forwards Authorization header if present
- * - Forwards Content-Type header if present
- * - Forwards request body for non-GET requests
- * - Streams the backend response back with status + headers
- * - 5-second timeout
- */
+interface ProxyCallArgs {
+  target: string;
+  method: string;
+  headers: Record<string, string>;
+  body: string | undefined;
+}
+
+async function rawProxy(args: ProxyCallArgs) {
+  const res = await undiciRequest(args.target, {
+    method: args.method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+    headers: args.headers,
+    body: args.body,
+    signal: AbortSignal.timeout(5000),
+  });
+  const body = await res.body.text();
+  return { statusCode: res.statusCode, headers: res.headers, body };
+}
+
+const breaker = new CircuitBreaker(rawProxy, {
+  timeout: 6000,
+  errorThresholdPercentage: 50,
+  resetTimeout: 10000,
+  volumeThreshold: 5,
+});
+
 export async function proxyRequest(
   req: FastifyRequest,
   reply: FastifyReply,
@@ -35,24 +50,20 @@ export async function proxyRequest(
   const hasBody = method !== "GET" && method !== "HEAD" && req.body != null;
 
   try {
-    const res = await undiciRequest(opts.target, {
-      method: method as "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+    const res = await breaker.fire({
+      target: opts.target,
+      method,
       headers,
       body: hasBody ? JSON.stringify(req.body) : undefined,
-      signal: AbortSignal.timeout(5000),
     });
 
-    // Forward response content-type
     const contentType = res.headers["content-type"];
     if (contentType) {
       reply.header("content-type", contentType);
     }
 
-    // Buffer the response body — undici ReadableStream can't be piped directly to Fastify reply
-    const body = await res.body.text();
-
     reply.status(res.statusCode);
-    reply.send(body);
+    reply.send(res.body);
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "TimeoutError") {
       reply

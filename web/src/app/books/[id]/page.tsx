@@ -116,33 +116,50 @@ export default function BookDetailPage() {
           </div>
         ) : book ? (
           <article>
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight
-                text-stone-900 sm:text-4xl dark:text-stone-100">
-                {book.title}
-              </h1>
-              <ShelfSelector workId={book.id} />
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-stone-500
-              dark:text-stone-400">
-              {aggregate && (
-                <div className="flex items-center gap-2">
-                  <StarRating value={aggregate.averageRating} readOnly size="sm" />
-                  <span className="text-xs text-stone-400 dark:text-stone-500">
-                    ({aggregate.totalRatings})
+            <div className="flex gap-6">
+              <div className="flex-shrink-0">
+                <div
+                  className="flex h-48 w-32 items-center justify-center rounded-lg
+                    bg-gradient-to-br from-stone-200 to-stone-300 shadow-sm
+                    dark:from-stone-700 dark:to-stone-800"
+                >
+                  <span className="select-none font-serif text-5xl font-bold text-stone-400
+                    dark:text-stone-500">
+                    {book.title.charAt(0).toUpperCase()}
                   </span>
                 </div>
-              )}
-              {book.originalPublicationYear && (
-                <span>Published {book.originalPublicationYear}</span>
-              )}
-              {book.originalLanguage && (
-                <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-medium uppercase
-                  tracking-wide text-stone-600 dark:bg-stone-800 dark:text-stone-400">
-                  {book.originalLanguage}
-                </span>
-              )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight
+                    text-stone-900 sm:text-4xl dark:text-stone-100">
+                    {book.title}
+                  </h1>
+                  <ShelfSelector workId={book.id} />
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-stone-500
+                  dark:text-stone-400">
+                  {aggregate && (
+                    <div className="flex items-center gap-2">
+                      <StarRating value={aggregate.averageRating} readOnly size="sm" />
+                      <span className="text-xs text-stone-400 dark:text-stone-500">
+                        ({aggregate.totalRatings})
+                      </span>
+                    </div>
+                  )}
+                  {book.originalPublicationYear && (
+                    <span>Published {book.originalPublicationYear}</span>
+                  )}
+                  {book.originalLanguage && (
+                    <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-medium uppercase
+                      tracking-wide text-stone-600 dark:bg-stone-800 dark:text-stone-400">
+                      {book.originalLanguage}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {book.description && (

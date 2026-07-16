@@ -1,3 +1,4 @@
+import "./lib/otel.js";
 import Fastify from "fastify";
 import multipart from "@fastify/multipart";
 import { loadConfig } from "./config.js";
