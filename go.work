@@ -7,5 +7,6 @@ use (
 	./services/verso-identity-service
 	./services/verso-library-service
 	./services/verso-profile-service
+	./services/verso-review-service
 	./services/verso-search-service
 )
