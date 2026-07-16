@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-// WorkDocument represents a document in the works index.
 type WorkDocument struct {
 	WorkID                  string   `json:"work_id"`
 	Title                   string   `json:"title"`
@@ -21,6 +20,8 @@ type WorkDocument struct {
 	ContributorNames        []string `json:"contributor_names,omitempty"`
 	OriginalLanguage        string   `json:"original_language,omitempty"`
 	OriginalPublicationYear int      `json:"original_publication_year,omitempty"`
+	RatingsCount            int      `json:"ratings_count,omitempty"`
+	AvgRating               float64  `json:"avg_rating,omitempty"`
 	CreatedAt               string   `json:"created_at"`
 }
 
@@ -60,7 +61,9 @@ const worksIndexMapping = `{
 			"contributor_names":          { "type": "text" },
 			"original_language":          { "type": "keyword" },
 			"original_publication_year":  { "type": "integer" },
-			"created_at":                 { "type": "date" }
+			"ratings_count":             { "type": "integer" },
+			"avg_rating":                { "type": "float" },
+			"created_at":                { "type": "date" }
 		}
 	}
 }`
@@ -217,7 +220,50 @@ func (c *Client) Search(ctx context.Context, query string) ([]SearchHit, error) 
 	return hits, nil
 }
 
-// Ping checks if OpenSearch is reachable.
+// UpdateWorkRating increments ratings_count and recalculates avg_rating
+// using a painless script (running average).
+func (c *Client) UpdateWorkRating(ctx context.Context, workID string, newRating float64) error {
+	script := map[string]interface{}{
+		"script": map[string]interface{}{
+			"source": `
+				ctx._source.ratings_count = (ctx._source.ratings_count ?: 0) + 1;
+				int count = ctx._source.ratings_count;
+				double oldAvg = (ctx._source.avg_rating ?: 0.0);
+				ctx._source.avg_rating = oldAvg + (params.rating - oldAvg) / count;
+			`,
+			"lang": "painless",
+			"params": map[string]interface{}{
+				"rating": newRating,
+			},
+		},
+	}
+
+	body, err := json.Marshal(script)
+	if err != nil {
+		return fmt.Errorf("marshal update script: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/works/_update/%s", c.baseURL, workID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("build update request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("update work rating: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("update work rating: status=%d body=%s", resp.StatusCode, respBody)
+	}
+
+	return nil
+}
+
 func (c *Client) Ping(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL, nil)
 	if err != nil {

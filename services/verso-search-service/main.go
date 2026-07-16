@@ -12,20 +12,22 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shahadulhaider/verso/libs/go/logger"
 	versootel "github.com/shahadulhaider/verso/libs/go/otel"
 
 	"github.com/shahadulhaider/verso/services/verso-search-service/internal/config"
 	"github.com/shahadulhaider/verso/services/verso-search-service/internal/handler"
+	"github.com/shahadulhaider/verso/services/verso-search-service/internal/hybrid"
 	"github.com/shahadulhaider/verso/services/verso-search-service/internal/indexer"
 	"github.com/shahadulhaider/verso/services/verso-search-service/internal/opensearch"
+	"github.com/shahadulhaider/verso/services/verso-search-service/internal/semantic"
 )
 
 const serviceName = "verso-search-service"
 
 func main() {
-	// Healthcheck subcommand for Docker compose.
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		runHealthcheck()
 		return
@@ -44,7 +46,6 @@ func main() {
 		defer shutdown(ctx)
 	}
 
-	// OpenSearch client — retry connection with backoff.
 	osClient := opensearch.New(cfg.OpenSearchURL, log)
 	var osReady bool
 	for attempt := 1; attempt <= 10; attempt++ {
@@ -63,7 +64,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Kafka consumer / indexer.
 	ix, err := indexer.New(cfg.RedpandaBrokers, osClient, log)
 	if err != nil {
 		log.Error("init indexer", slog.String("error", err.Error()))
@@ -73,8 +73,25 @@ func main() {
 
 	go ix.Run(ctx)
 
-	// HTTP server.
-	h := handler.New(osClient)
+	// pgvector pool for semantic search (optional — degrades gracefully).
+	var semClient *semantic.Client
+	var hybridSearcher *hybrid.Searcher
+
+	if cfg.DatabaseURL != "" {
+		pool, pgErr := pgxpool.New(ctx, cfg.DatabaseURL)
+		if pgErr != nil {
+			log.Warn("pgvector pool init failed, semantic search disabled",
+				slog.String("error", pgErr.Error()))
+		} else {
+			defer pool.Close()
+			semClient = semantic.New(pool, cfg.LLMGatewayURL, log)
+			hybridSearcher = hybrid.New(osClient, semClient)
+			log.Info("semantic search enabled",
+				slog.String("llm_gateway", cfg.LLMGatewayURL))
+		}
+	}
+
+	h := handler.New(osClient, semClient, hybridSearcher)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -84,6 +101,7 @@ func main() {
 	r.Get("/health", h.Health)
 	r.Get("/ready", h.Ready)
 	r.Get("/v1/search", h.Search)
+	r.Get("/v1/search/semantic", h.SemanticSearch)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -106,7 +124,7 @@ func main() {
 	<-quit
 
 	log.Info("shutting down")
-	cancel() // stop the indexer consumer loop
+	cancel()
 
 	shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutCancel()

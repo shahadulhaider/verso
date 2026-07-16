@@ -298,12 +298,16 @@ services:
       <<: *common-env
       PORT: "8003"
       OPENSEARCH_URL: http://opensearch:9200
+      LLM_GATEWAY_URL: http://verso-llm-gateway:${LLM_GATEWAY_PORT}
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=ai&sslmode=disable
     depends_on:
       opensearch:
         condition: service_healthy
       redpanda:
         condition: service_healthy
       verso-catalog-service:
+        condition: service_healthy
+      verso-llm-gateway:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/app/server", "healthcheck"]

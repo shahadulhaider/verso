@@ -11,7 +11,7 @@ import (
 )
 
 func TestSearch_EmptyQuery(t *testing.T) {
-	h := handler.New(opensearch.New("http://localhost:9200", nil))
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/search?q=", nil)
 	rec := httptest.NewRecorder()
@@ -34,7 +34,7 @@ func TestSearch_EmptyQuery(t *testing.T) {
 }
 
 func TestSearch_UnsupportedType(t *testing.T) {
-	h := handler.New(opensearch.New("http://localhost:9200", nil))
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/search?q=test&type=author", nil)
 	rec := httptest.NewRecorder()
@@ -47,7 +47,7 @@ func TestSearch_UnsupportedType(t *testing.T) {
 }
 
 func TestSearch_TypeWorkAccepted(t *testing.T) {
-	h := handler.New(opensearch.New("http://localhost:9200", nil))
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/search?q=&type=work", nil)
 	rec := httptest.NewRecorder()
@@ -60,7 +60,7 @@ func TestSearch_TypeWorkAccepted(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
-	h := handler.New(opensearch.New("http://localhost:9200", nil))
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rec := httptest.NewRecorder()
@@ -77,5 +77,60 @@ func TestHealth(t *testing.T) {
 	}
 	if resp["status"] != "ok" {
 		t.Fatalf("expected status=ok, got %q", resp["status"])
+	}
+}
+
+func TestSemanticSearch_NotConfigured(t *testing.T) {
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/search/semantic?q=cozy+mystery", nil)
+	rec := httptest.NewRecorder()
+
+	h.SemanticSearch(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Error != "semantic search not configured" {
+		t.Fatalf("expected 'semantic search not configured', got %q", resp.Error)
+	}
+}
+
+func TestSemanticSearch_EmptyQuery(t *testing.T) {
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/search/semantic?q=", nil)
+	rec := httptest.NewRecorder()
+
+	h.SemanticSearch(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+}
+
+func TestSearch_ModeDefault(t *testing.T) {
+	h := handler.New(opensearch.New("http://localhost:9200", nil), nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/search?q=", nil)
+	rec := httptest.NewRecorder()
+
+	h.Search(rec, req)
+
+	var resp struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Mode != "text" {
+		t.Fatalf("expected mode=text, got %q", resp.Mode)
 	}
 }
