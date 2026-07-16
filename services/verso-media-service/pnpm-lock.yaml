@@ -23,12 +23,12 @@ importers:
       '@opentelemetry/sdk-node':
         specifier: ^0.57.0
         version: 0.57.2(@opentelemetry/api@1.9.1)
+      '@verso/jwt':
+        specifier: file:../../libs/node/packages/jwt
+        version: file:../../libs/node/packages/jwt
       fastify:
         specifier: ^5.3.3
         version: 5.10.0
-      jose:
-        specifier: ^6.0.11
-        version: 6.2.3
       opossum:
         specifier: ^8.4.2
         version: 8.5.0
@@ -717,6 +717,9 @@ packages:
 
   '@types/shimmer@1.2.0':
     resolution: {integrity: sha512-UE7oxhQLLd9gub6JKIAhDq06T0F6FnztwMNRvYgjeQSBeMc1ZG/tA47EwfduvkuQS8apbkM/lpLpWsaCeYsXVg==}
+
+  '@verso/jwt@file:../../libs/node/packages/jwt':
+    resolution: {directory: ../../libs/node/packages/jwt, type: directory}
 
   '@vitest/expect@3.2.7':
     resolution: {integrity: sha512-E8eBXaKibuvH2pSZErOjdVb5vF4PbKYcrnluBTYxEk1l/VhhwZg1kZQsdtjq+CsF5CFydf2Rdkz7jDHKSisi3w==}
@@ -2078,6 +2081,10 @@ snapshots:
       pg-types: 2.2.0
 
   '@types/shimmer@1.2.0': {}
+
+  '@verso/jwt@file:../../libs/node/packages/jwt':
+    dependencies:
+      jose: 6.2.3
 
   '@vitest/expect@3.2.7':
     dependencies:

@@ -1,19 +1,14 @@
-import * as jose from "jose";
+import { JWKSValidator, type Claims } from "@verso/jwt";
 
-let jwks: ReturnType<typeof jose.createRemoteJWKSet> | null = null;
+let validator: JWKSValidator | null = null;
+
+export type JwtPayload = Claims & { [key: string]: unknown };
 
 export function initJwks(jwksUrl: string): void {
-  jwks = jose.createRemoteJWKSet(new URL(jwksUrl));
-}
-
-export interface JwtPayload {
-  sub: string;
-  [key: string]: unknown;
+  validator = new JWKSValidator(jwksUrl);
 }
 
 export async function verifyToken(token: string): Promise<JwtPayload> {
-  if (!jwks) throw new Error("JWKS not initialized");
-  const { payload } = await jose.jwtVerify(token, jwks);
-  if (!payload.sub) throw new Error("Token missing sub claim");
-  return payload as JwtPayload;
+  if (!validator) throw new Error("JWKS not initialized");
+  return validator.validate(token) as Promise<JwtPayload>;
 }
