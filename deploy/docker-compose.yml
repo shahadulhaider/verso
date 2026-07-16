@@ -440,8 +440,8 @@ services:
   # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
   web-bff:
     build:
-      context: ../services/web-bff
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/web-bff/Dockerfile
     ports:
       - "${BFF_PORT}:8010"
     environment:
@@ -489,8 +489,8 @@ services:
   # ─── Media Service (Node/Fastify — media upload via MinIO) ─────────────
   verso-media-service:
     build:
-      context: ../services/verso-media-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/verso-media-service/Dockerfile
     environment:
       <<: *common-env
       DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=media&sslmode=disable
@@ -578,8 +578,8 @@ services:
   # ─── Feed Service (Node/Fastify — activity fan-out + timeline) ─────────
   verso-feed-service:
     build:
-      context: ../services/verso-feed-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/verso-feed-service/Dockerfile
     environment:
       <<: *common-env
       DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=feed&sslmode=disable
