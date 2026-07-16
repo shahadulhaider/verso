@@ -62,6 +62,15 @@ tasks:
               "table.include.list": ".*\\.outbox_events",
               "transforms": "outbox",
               "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+              "transforms.outbox.table.field.event.id": "event_id",
+              "transforms.outbox.table.field.event.key": "aggregate_id",
+              "transforms.outbox.table.field.event.type": "event_type",
+              "transforms.outbox.table.field.event.payload": "payload",
+              "transforms.outbox.table.fields.additional.placement": "event_type:header:eventType",
+              "transforms.outbox.route.by.field": "event_type",
+              "transforms.outbox.route.topic.replacement": "${routedByValue}",
+              "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+              "key.converter": "org.apache.kafka.connect.storage.StringConverter",
               "plugin.name": "pgoutput"
             }
           }'
@@ -83,6 +92,12 @@ tasks:
     cmds:
       - task: migrate:identity
       - task: migrate:catalog
+      - task: migrate:profile
+      - task: migrate:library
+      - task: migrate:review
+      - task: migrate:social
+      - task: migrate:feed
+      - task: migrate:media
 
   migrate:identity:
     desc: Run identity service migrations
@@ -96,8 +111,61 @@ tasks:
     cmds:
       - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=catalog&sslmode=disable" up
 
+  migrate:profile:
+    desc: Run profile service migrations
+    dir: services/verso-profile-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=profile&sslmode=disable" up
+
+  migrate:library:
+    desc: Run library service migrations
+    dir: services/verso-library-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=library&sslmode=disable" up
+
+  migrate:review:
+    desc: Run review service migrations
+    dir: services/verso-review-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=review&sslmode=disable" up
+
+  migrate:social:
+    desc: Run social service migrations
+    dir: services/verso-social-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=social&sslmode=disable" up
+
+  migrate:feed:
+    desc: Run feed service migrations
+    dir: services/verso-feed-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=feed&sslmode=disable" up
+
+  migrate:media:
+    desc: Run media service migrations
+    dir: services/verso-media-service
+    cmds:
+      - goose -dir migrations postgres "{{.DATABASE_URL}}/verso?search_path=media&sslmode=disable" up
+
   dev:web:
     desc: Start Next.js dev server
     dir: web
     cmds:
       - pnpm dev
+
+  dev:llm-gateway:
+    desc: Start LLM gateway dev server
+    dir: services/verso-llm-gateway
+    cmds:
+      - uvicorn src.verso_llm_gateway.main:app --reload --port 8011
+
+  dev:ai-inference:
+    desc: Start AI inference dev server
+    dir: services/verso-ai-inference-service
+    cmds:
+      - uvicorn src.verso_ai_inference.main:app --reload --port 8012
+
+  seed:
+    desc: Seed catalog with sample data
+    cmds:
+      - bash scripts/seed.sh

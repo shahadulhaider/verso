@@ -1,0 +1,20 @@
+syntax = "proto3";
+package verso.library.v1;
+
+// ShelfItemAdded is emitted when a user adds a work to a shelf.
+message ShelfItemAdded {
+  string user_id = 1;     // ULID
+  string work_id = 2;     // ULID
+  string shelf_id = 3;    // ULID
+  string shelf_name = 4;  // e.g. "Want to Read", "Currently Reading"
+  string added_at = 5;    // ISO-8601 UTC
+}
+
+// ReadingProgressUpdated is emitted when reading progress changes.
+message ReadingProgressUpdated {
+  string user_id = 1;      // ULID
+  string format_id = 2;    // ULID of the specific format being read
+  string work_id = 3;      // ULID
+  double progress_pct = 4; // 0.0–100.0
+  int32 pages_read = 5;
+}

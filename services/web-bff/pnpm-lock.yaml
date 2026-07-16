@@ -14,6 +14,9 @@ importers:
       fastify:
         specifier: ^5.3.3
         version: 5.10.0
+      opossum:
+        specifier: ^8.4.2
+        version: 8.5.0
       pino:
         specifier: ^9.6.0
         version: 9.14.0
@@ -24,6 +27,9 @@ importers:
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1
+      '@types/opossum':
+        specifier: ^8.1.7
+        version: 8.1.9
       tsx:
         specifier: ^4.19.4
         version: 4.23.1
@@ -369,6 +375,9 @@ packages:
   '@types/node@22.20.1':
     resolution: {integrity: sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==}
 
+  '@types/opossum@8.1.9':
+    resolution: {integrity: sha512-Jm/tYxuJFefiwRYs+/EOsUP3ktk0c8siMgAHPLnA4PXF4wKghzcjqf88dY+Xii5jId5Txw4JV0FMKTpjbd7KJA==}
+
   '@vitest/expect@3.2.7':
     resolution: {integrity: sha512-E8eBXaKibuvH2pSZErOjdVb5vF4PbKYcrnluBTYxEk1l/VhhwZg1kZQsdtjq+CsF5CFydf2Rdkz7jDHKSisi3w==}
 
@@ -549,6 +558,10 @@ packages:
   on-exit-leak-free@2.1.2:
     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
     engines: {node: '>=14.0.0'}
+
+  opossum@8.5.0:
+    resolution: {integrity: sha512-LZNvs+p9/ZbG4oN6unnjh4hTxkB0dyHKI2p7azVt8w+//GKDpfHss6WR7KebbpzGEssYwtSd8Mvwxqcmxg10NA==}
+    engines: {node: ^24 || ^22 || ^21 || ^20 || ^18 || ^16}
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
@@ -977,6 +990,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/opossum@8.1.9':
+    dependencies:
+      '@types/node': 22.20.1
+
   '@vitest/expect@3.2.7':
     dependencies:
       '@types/chai': 5.2.3
@@ -1185,6 +1202,8 @@ snapshots:
   nanoid@3.3.16: {}
 
   on-exit-leak-free@2.1.2: {}
+
+  opossum@8.5.0: {}
 
   pathe@2.0.3: {}
 

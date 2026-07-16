@@ -298,12 +298,16 @@ services:
       <<: *common-env
       PORT: "8003"
       OPENSEARCH_URL: http://opensearch:9200
+      LLM_GATEWAY_URL: http://verso-llm-gateway:${LLM_GATEWAY_PORT}
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=ai&sslmode=disable
     depends_on:
       opensearch:
         condition: service_healthy
       redpanda:
         condition: service_healthy
       verso-catalog-service:
+        condition: service_healthy
+      verso-llm-gateway:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/app/server", "healthcheck"]
@@ -317,11 +321,127 @@ services:
       - "traefik.http.services.search.loadbalancer.server.port=8003"
     networks: [verso-net]
 
+  # ─── Profile Service ──────────────────────────────────────────────────
+  verso-profile-service:
+    build:
+      context: ..
+      dockerfile: services/verso-profile-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=profile&sslmode=disable
+      SERVICE_PORT: ${PROFILE_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.profile.rule=PathPrefix(`/v1/profiles`)"
+      - "traefik.http.services.profile.loadbalancer.server.port=${PROFILE_SERVICE_PORT}"
+    networks: [verso-net]
+
+  # ─── Library Service ──────────────────────────────────────────────────
+  verso-library-service:
+    build:
+      context: ..
+      dockerfile: services/verso-library-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=library&sslmode=disable
+      SERVICE_PORT: ${LIBRARY_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.library.rule=PathPrefix(`/v1/library`)"
+      - "traefik.http.services.library.loadbalancer.server.port=${LIBRARY_SERVICE_PORT}"
+    networks: [verso-net]
+
+  # ─── Review Service ───────────────────────────────────────────────────
+  verso-review-service:
+    build:
+      context: ..
+      dockerfile: services/verso-review-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=review&sslmode=disable
+      SERVICE_PORT: ${REVIEW_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.review.rule=PathPrefix(`/v1/reviews`) || (PathPrefix(`/v1/works`) && PathRegexp(`/v1/works/[^/]+/(reviews|aggregate-rating)`))"
+      - "traefik.http.services.review.loadbalancer.server.port=${REVIEW_SERVICE_PORT}"
+    networks: [verso-net]
+
+  # ─── Social Service ────────────────────────────────────────────────────
+  verso-social-service:
+    build:
+      context: ..
+      dockerfile: services/verso-social-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=social&sslmode=disable
+      SERVICE_PORT: ${SOCIAL_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.social.rule=PathPrefix(`/v1/social`)"
+      - "traefik.http.services.social.loadbalancer.server.port=${SOCIAL_SERVICE_PORT}"
+    networks: [verso-net]
+
   # ─── Web BFF (Node/Fastify aggregation proxy) ──────────────────────────
   web-bff:
     build:
-      context: ../services/web-bff
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/web-bff/Dockerfile
     ports:
       - "${BFF_PORT}:8010"
     environment:
@@ -329,12 +449,30 @@ services:
       IDENTITY_SERVICE_URL: http://verso-identity-service:8001
       CATALOG_SERVICE_URL: http://verso-catalog-service:8002
       SEARCH_SERVICE_URL: http://verso-search-service:8003
+      PROFILE_SERVICE_URL: http://verso-profile-service:${PROFILE_SERVICE_PORT}
+      MEDIA_SERVICE_URL: http://verso-media-service:${MEDIA_SERVICE_PORT}
+      LIBRARY_SERVICE_URL: http://verso-library-service:${LIBRARY_SERVICE_PORT}
+      REVIEW_SERVICE_URL: http://verso-review-service:${REVIEW_SERVICE_PORT}
+      SOCIAL_SERVICE_URL: http://verso-social-service:${SOCIAL_SERVICE_PORT}
+      FEED_SERVICE_URL: http://verso-feed-service:${FEED_SERVICE_PORT}
     depends_on:
       verso-identity-service:
         condition: service_healthy
       verso-catalog-service:
         condition: service_healthy
       verso-search-service:
+        condition: service_healthy
+      verso-profile-service:
+        condition: service_healthy
+      verso-media-service:
+        condition: service_healthy
+      verso-library-service:
+        condition: service_healthy
+      verso-review-service:
+        condition: service_healthy
+      verso-social-service:
+        condition: service_healthy
+      verso-feed-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8010/health"]
@@ -346,6 +484,123 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.bff.rule=PathPrefix(`/api`)"
       - "traefik.http.services.bff.loadbalancer.server.port=8010"
+    networks: [verso-net]
+
+  # ─── Media Service (Node/Fastify — media upload via MinIO) ─────────────
+  verso-media-service:
+    build:
+      context: ..
+      dockerfile: services/verso-media-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=media&sslmode=disable
+      SERVICE_PORT: ${MEDIA_SERVICE_PORT}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      verso-identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${MEDIA_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.media.rule=PathPrefix(`/v1/media`)"
+      - "traefik.http.services.media.loadbalancer.server.port=${MEDIA_SERVICE_PORT}"
+    networks: [verso-net]
+
+  # ─── LLM Gateway (Python/FastAPI — AI model routing) ───────────────────
+  verso-llm-gateway:
+    build:
+      context: ..
+      dockerfile: services/verso-llm-gateway/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?options=-c%20search_path%3Dai
+      SERVICE_PORT: ${LLM_GATEWAY_PORT}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2
+      OLLAMA_EMBED_MODEL: nomic-embed-text
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${LLM_GATEWAY_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.llm-gateway.rule=PathPrefix(`/v1/llm`)"
+      - "traefik.http.services.llm-gateway.loadbalancer.server.port=${LLM_GATEWAY_PORT}"
+    networks: [verso-net]
+
+  # ─── AI Inference Service (Python/FastAPI — embeddings + vector search) ──
+  verso-ai-inference-service:
+    build:
+      context: ..
+      dockerfile: services/verso-ai-inference-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?options=-c%20search_path%3Dai
+      SERVICE_PORT: ${AI_INFERENCE_PORT}
+      LLM_GATEWAY_URL: http://verso-llm-gateway:${LLM_GATEWAY_PORT}
+      KAFKA_BROKERS: redpanda:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      verso-llm-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${AI_INFERENCE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai-inference.rule=PathPrefix(`/v1/ai`)"
+      - "traefik.http.services.ai-inference.loadbalancer.server.port=${AI_INFERENCE_PORT}"
+    networks: [verso-net]
+
+  # ─── Feed Service (Node/Fastify — activity fan-out + timeline) ─────────
+  verso-feed-service:
+    build:
+      context: ..
+      dockerfile: services/verso-feed-service/Dockerfile
+    environment:
+      <<: *common-env
+      DATABASE_URL: postgres://verso:${POSTGRES_PASSWORD}@postgres:5432/verso?search_path=feed&sslmode=disable
+      SERVICE_PORT: ${FEED_SERVICE_PORT}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/2
+      SOCIAL_SERVICE_URL: http://verso-social-service:${SOCIAL_SERVICE_PORT}
+      JWKS_URL: http://verso-identity-service:8001/.well-known/jwks.json
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      verso-social-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${FEED_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.feed.rule=PathPrefix(`/v1/feed`)"
+      - "traefik.http.services.feed.loadbalancer.server.port=${FEED_SERVICE_PORT}"
     networks: [verso-net]
 
   # ═══════════════════════════════════════════════════════════════════════

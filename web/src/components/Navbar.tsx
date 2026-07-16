@@ -102,13 +102,21 @@ export default function Navbar() {
         {/* Nav links + theme toggle + auth */}
         <div className="flex items-center gap-4">
           {authed && (
-            <Link
-              href="/books"
-              className="text-sm font-medium text-stone-600 transition-colors
-                hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-            >
-              Books
-            </Link>
+            <>
+              {[
+                { href: '/feed', label: 'Feed' },
+                { href: '/books', label: 'Books' },
+                { href: '/library', label: 'Library' },
+                { href: '/discover', label: 'Discover' },
+                { href: '/profile', label: 'Profile' },
+              ].map(({ href, label }) => (
+                <Link key={href} href={href}
+                  className="text-sm font-medium text-stone-600 transition-colors
+                    hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100">
+                  {label}
+                </Link>
+              ))}
+            </>
           )}
 
           <ThemeToggle />

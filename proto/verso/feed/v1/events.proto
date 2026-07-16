@@ -1,0 +1,11 @@
+syntax = "proto3";
+package verso.feed.v1;
+
+// ActivityCreated is emitted when a new activity appears in the feed.
+message ActivityCreated {
+  string activity_id = 1;  // ULID
+  string actor_id = 2;     // ULID of the user who performed the action
+  string verb = 3;         // e.g. "reviewed", "shelved", "followed"
+  string object_type = 4;  // e.g. "work", "review", "user"
+  string object_id = 5;    // ULID of the target object
+}
